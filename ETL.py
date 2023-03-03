@@ -1,107 +1,95 @@
+import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import concat, col, lit, lower, upper, initcap, sum, isnull, expr
 from pyspark.sql.types import*
 import mysql.connector as mariadb
 
-def read_json_file_to_df(spark, filename):
-    
-    spark = SparkSession.builder.appName('Bank_System').getOrCreate()
-    if os.path.exists(filename):
-        return spark.read.json(filename)
-    else:
-        return None
-    
+#Build an entry point to Spark SQL application
 
-def clean_customer_df(spark, filename):
-    
-    customer_df = read_json_to_df(spark, json_files[0])
-    customer_df = customer_df.select(initcap(col('FIRST_NAME')),lower(col('MIDDLE_NAME')),initcap(col('LAST_NAME')),'*')\
-                                .drop('MIDDLE_NAME','FIRST_NAME','LAST_NAME')\
-                                .withColumnRenamed("lower(MIDDLE_NAME)","MIDDLE_NAME")\
-                                .withColumnRenamed("initcap(FIRST_NAME)","FIRST_NAME")\
-                                .withColumnRenamed("initcap(LAST_NAME)","LAST_NAME")
-    
-    # Concatenate Apt. No and street name with a comma as a sperator
-    customer_df = customer_df.select(concat(concat('STREET_NAME', lit(", "), 'APT_NO'))\
-                                     .alias('FULL_STREET_ADDRESS'), '*')\
-                                    .withColumn('CUST_ZIP',col('CUST_ZIP').cast(IntegerType()))\
-                                    .drop('APT_NO','STREET_NAME')
-    return customer_df
-    
-def clean_branch_df(spark, filename):
-    
-    branch_df = read_json_to_df(spark, json_files[1])
-    return branch_df
+spark = SparkSession.builder.appName('capstone').getOrCreate()
+
+#Create a function to read json files into spark dataFrame
+
+def jsonfile_into_df(file_name):
+    return spark.read.json(file_name)
+branch = jsonfile_into_df('./data/json/cdw_sapp_branch.json')
+credit = jsonfile_into_df('./data/json/cdw_sapp_credit.json')
+custmer = jsonfile_into_df('./data/json/cdw_sapp_custmer.json')
+
+#Mapping Logic, performing necessary converstion before moving spark dataframe into new database
+
+# street and name manipluation
+custmer = custmer.select(concat(concat('STREET_NAME', lit(", "), 'APT_NO')).alias('FULL_STREET_ADDRESS'), '*').withColumn('CUST_ZIP',col('CUST_ZIP').cast(IntegerType())).drop('APT_NO','STREET_NAME')
+custmer = custmer.select(initcap(col('FIRST_NAME')),lower(col('MIDDLE_NAME')),initcap(col('LAST_NAME')),'*').drop('MIDDLE_NAME','FIRST_NAME','LAST_NAME').withColumnRenamed("lower(MIDDLE_NAME)","MIDDLE_NAME").withColumnRenamed("initcap(FIRST_NAME)","FIRST_NAME").withColumnRenamed("initcap(LAST_NAME)","LAST_NAME")
+
+# Credit_card year,month,day to Date in one column
+# credit.withColumn('TIMEID', concat('YEAR','MONTH','DAY'))
+credit.withColumn('TIMEDID', expr("make_date(year, month, day)"))
+
+# checking zipcode nullness
+branch.filter(branch.BRANCH_ZIP.isNull())
+# converting zipcode and branchphone datatype
+branch.withColumn('BRANCH_ZIP',col('BRANCH_ZIP').cast(IntegerType()))
+branch.withColumn('BRANCH_PHONE', col('BRANCH_PHONE').cast(StringType()))
 
 
-def clean_credit_df(spark, filename):
-    
-    credit_df = read_json_to_df(spark, json_files[2])
-    credit_df = credit_df.withColumn('TIMEDID', expr("make_date(year, month, day)"))
-    return credit_df
+#converting given phone numbers to list to be able to manipulate.
+number = branch.select('BRANCH_PHONE').rdd.flatMap(lambda x: x).collect()
 
+# a function converts phone number to (XXX)XXX-XXXX format
+nums = []
+def number_to_phone(number): 
+    for num in number:
+        nums.append('('+'617'+')' + num[3:6] + '-' + num[6:])
+    return nums    
+u = number_to_phone(number)
 
+# a new spark dataframe with the new formated phone number
+b = spark.createDataFrame([(l,) for l in nums], ['BRANCH_PHONE'])
+#
+branch = branch.drop('BRANCH_PHONE').join(b)
 
-def customer_df_to_db(spark, database_name):
-    
-    customer = customer_df.write.format("jdbc") \
-    .mode("append") \
-    .option("url", f"jdbc:mysql://localhost:3306/carolina") \
-    .option("dbtable","CDW_SAPP_CUSTOMER") \
-    .option("user", "root") \
-    .option("password", "abc") \
-    .save()
-    
+#Make connection to server and create a new database
 
-
-
-
-def branch_df_to_db(spark, database_name):
-        
-    branch = clean_branch_df().write.format("jdbc") \
-    .mode("append") \
-    .option("url", f"jdbc:mysql://localhost:3306/carolina") \
-    .option("dbtable","CDW_SAPP_CUSTOMER") \
-    .option("user", "root") \
-    .option("password", "abc") \
-    .save()
-    
-
-def credit_df_to_db(spark, database_name):
-        
-    credit = clean_credit_df.write.format("jdbc") \
-    .mode("append") \
-    .option("url", f"jdbc:mysql://localhost:3306/carolina") \
-    .option("dbtable","CDW_SAPP_CUSTOMER") \
-    .option("user", "root") \
-    .option("password", "abc") \
-    .save()
-    
-
-def create_database(database_name):
-    
-    # connect to server
-    connection = mariadb.connect(
+# connect to server
+import mysql.connector as mariadb
+connection = mariadb.connect(
     host='localhost',
     user='root',
-    password='abc'
+    password='abc'    
     )
-    cursor = connection.cursor(buffered=True)
-    # check if
-    cursor.execute("CREATE DATABASE IF NOT EXISTS " + database_name)
-    return None
+# construct a connection cursor constructor
+cursor = connection.cursor(buffered=True)
 
-def main():
-    json_files = [
-         "./data/json/CDW_SAPP_CUSTOMER.JSON",
-        "./data/json/CDW_SAPP_BRANCH.JSON", 
-        "./data/json/CDW_SAPP_CREDITCARD.JSON",
-    ]
-    
-    create_database("dc")
-    customer_df_to_db(spark, database_name)
-    read_json_file_to_df(spark, filename)
-    
+# create database
+cursor.execute("CREATE DATABASE IF NOT EXISTS creditcard_capstone")
 
-if __name__ == "__main__":
-    main() 
+#push spark dataFrames into the new database
+
+# load costmer to fakedb
+customer_spark_df = custmer.write.format("jdbc") \
+  .mode("append") \
+  .option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+  .option("dbtable","CDW_SAPP_CUSTOMER") \
+  .option("user", "root") \
+  .option("password", "abc") \
+  .save()
+
+# load branch to fakedb
+branch_spark_df = branch.write.format("jdbc") \
+  .mode("append") \
+  .option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+  .option("dbtable","CDW_SAPP_BRANCH") \
+  .option("user", "root") \
+  .option("password", "abc") \
+  .save()
+
+# load dredit_card to fakedb
+credit_spark_df = credit.write.format("jdbc") \
+  .mode("append") \
+  .option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+  .option("dbtable","CDW_SAPP_CREDIT_CARD") \
+  .option("user", "root") \
+  .option("password", "abc") \
+  .save()
+
