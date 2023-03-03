@@ -1,0 +1,98 @@
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import pandas as pd
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import*
+spark = SparkSession.builder.getOrCreate()
+
+def read_batabase():
+    pass
+
+# using spark to read CREDIT_CARD, BRANCH, CUSTOMER from  database into spark dataframe 
+
+credit = spark.read.format("jdbc").option("driver","com.mysql.cj.jdbc.Driver").option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+      .option("dbtable","CDW_SAPP_CREDIT_CARD") \
+      .option("user", "root") \
+      .option("password", "abc") \
+      .load()
+branch = spark.read.format("jdbc").option("driver","com.mysql.cj.jdbc.Driver").option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+      .option("dbtable","CDW_SAPP_BRANCH") \
+      .option("user", "root") \
+      .option("password", "abc") \
+      .load()
+customer = spark.read.format("jdbc").option("driver","com.mysql.cj.jdbc.Driver").option("url", "jdbc:mysql://localhost:3306/creditcard_capstone") \
+      .option("dbtable","CDW_SAPP_CUSTOMER") \
+      .option("user", "root") \
+      .option("password", "abc") \
+      .load()
+
+#1)    Used to display the transactions made by customers living in a given zip code for a given month and year. Order by day in descending order.
+
+def option_1():
+    pass
+
+cc = credit
+bb = branch
+
+# checking credit schema
+credit.printSchema()
+# credit schema lacks branch zipcode
+
+
+# joning branch table with credit_card table to bring branch_zipcode to credit table
+merged = cc.join(bb.select('BRANCH_ZIP','BRANCH_CODE', 'BRANCH_STATE'), on='BRANCH_CODE')
+
+# let user pick zipcode, year, month
+zipcode = int(input('Enter BRANCH_ZIP: '))
+year = input('enter YEAR: ')   #years available only 2018
+month = input('Enter MONTH [1-12]: ') # months [1,2,3,4,5,6,7,8,9,10,11,12]
+#verify user inputs
+
+# select transaction info requested 
+data_by_zipcode = merged.select('BRANCH_ZIP','MONTH','DAY','TRANSACTION_VALUE','YEAR')\
+        .filter((col('BRANCH_ZIP')==f"{zipcode}")  & (col('YEAR')==f"{year}") & (col('MONTH')==f"{month}"))  \
+        .groupby('BRANCH_ZIP','YEAR','MONTH','DAY')\
+        .agg(round(sum('TRANSACTION_VALUE')).alias("Transactions Value"))\
+        .orderBy("DAY")
+
+data_by_zipcode.show()
+
+#2)    Used to display the number and total values of transactions for a given type.
+
+def option_2():
+    pass
+
+# select transaction types and values,  and apply mathematical aggregation on them
+tran_type = credit.select('TRANSACTION_TYPE', 'TRANSACTION_VALUE')\
+            .groupby('TRANSACTION_TYPE')\
+            .agg(count('*').alias('No Of Transactions'),round(sum('TRANSACTION_VALUE'),2).alias('TRANSACTION_VALUES'))
+tran_type2 = tran_type
+tran_type.show()
+
+#3)    Used to display the total number and total values of transactions for branches in a given state.
+
+def option_3():
+    pass
+
+# select states and transactions,  and apply mathematical aggregation on them
+state = merged.select('BRANCH_STATE', 'TRANSACTION_VALUE')\
+            .groupby('BRANCH_STATE')\
+            .agg(count('*').alias('count'),sum('TRANSACTION_VALUE').alias('TRANSACTION_VALUE')).show()
+
+#2.1) Used to check the existing account details of a customer.
+
+def option_4():
+    pass
+
+# let user enter customer's social security
+ssn = input('Enter Customer SSN: ')
+
+#  filter table on customer's unique social security
+customer_details = customer.filter(col('SSN')==f'{ssn}').distinct()
+
+customer_details.show(vertical=True)
+
+# Used to modify the existing account details of a customer.
+
+def option_5():
+    pass
