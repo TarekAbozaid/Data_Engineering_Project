@@ -1,0 +1,75 @@
+# create key:value dictionary for mapping option number to option task
+
+def mainMenu():
+    menu_options = {
+    1: 'Option 1',
+    2: 'Option 2',
+    3: 'Option 3',
+    4: 'Option 4',
+    5: 'Option 5',
+    6: 'Option 6',
+    7: 'Option 7',
+    0: 'Exit',
+    }
+    return menu_options
+
+# function to display the Menu
+def print_menu():
+    for key in mainMenu().keys():
+        print (key, '--', mainMenu()[key] )
+
+def option_1():
+     pass
+
+def option_2():
+     pass
+
+def option_3():
+     pass
+
+def option_4():
+     pass
+
+def option_5():
+     print(cust_Menu())
+
+def option_6():
+     pass
+
+def option_7():
+    pass
+
+
+
+if __name__=='__main__':
+    
+    
+    while(True):
+        print_menu()
+        try:
+            option = int(input('Enter your choice: '))
+        except:
+            print('Wrong input. Please enter a number ...')
+            
+        
+        if option == 1:
+            option_1()
+        elif option == 2:
+            option_2()
+        elif option == 3:
+            option_3()
+        elif option == 4:
+            option_4()
+        elif option == 5:
+            option_5()
+        elif option == 6:
+            option_6()
+        elif option == 7:
+            option_7()
+        elif option == 0:
+    
+            print('Good Bye!')
+            break
+            
+        else:
+            print('Invalid option. Please enter a number between 0 and 7.')
