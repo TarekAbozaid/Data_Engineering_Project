@@ -1,14 +1,13 @@
-Capstone Project  - Requirements Document
+Project  - Requirements Document
 
 
 Requirements Document
 
 
-Overview: This capstone project is your opportunity to demonstrate the knowledge and abilities you have acquired throughout the course.
-This Capstone Project requires learners to work with the following technologies to manage an ETL process for a Loan Application dataset and a Credit Card dataset: Python (Pandas, advanced modules e.g., Matplotlib), MariaDB, Apache Spark (Spark Core, Spark SQL), and Python Visualization and Analytics libraries. Learners are expected to set up their environments and perform installations on their local machines. 
+This Project requires to work with the following technologies to manage an ETL process for a Loan Application dataset and a Credit Card dataset: Python (Pandas, advanced modules e.g., Matplotlib), MariaDB, Apache Spark (Spark Core, Spark SQL), and Python Visualization and Analytics libraries. Learners are expected to set up their environments and perform installations on their local machines. 
 
 Workflow Diagram of the Requirements
-The workflow below will help you to understand the requirements and flow of the application.
+The workflow below will help to understand the requirements and flow of the application.
 
 Credit Card Dataset Overview
 The Credit Card System database is an independent system developed for managing activities such as registering new customers and approving or canceling requests, etc., using the architecture.
@@ -31,7 +30,7 @@ For “Credit Card System,” create a Python and PySpark SQL program to read/ex
 
 Note: Data Engineers will be required to transform the data based on the requirements found in the Mapping Document.
 
-Hint: [You can use  PYSQL “select statement query” or simple Pyspark RDD].
+[You can use  PYSQL “select statement query” or simple Pyspark RDD].
 
 
 
@@ -83,18 +82,12 @@ Req - 3
  Data Analysis and Visualization
 Functional Requirements 3.1
 Find and plot which transaction type has a high rate of transactions.
-
-Note: Take a screenshot of the graphs. 
+ 
 Functional Requirements 3.2
 Find and plot which state has a high number of customers.
 
-Note: Take a screenshot of the graphs. 
 Functional Requirements 3.3
 Find and plot the sum of all transactions for the top 10 customers, and which customer has the highest transaction amount.
-hint(use CUST_SSN). 
-
-Note: Take a screenshot of the graphs. 
-
 
 
 Overview of LOAN application Data API
@@ -114,6 +107,7 @@ Functional Requirements 4.2
 Find the status code of the above API endpoint.
 
 Hint: status code could be 200, 400, 404, 401.
+
 Functional Requirements 4.3
 Once Python reads data from the API, utilize PySpark to load data into RDBMS(SQL). The table name should be CDW-SAPP_loan_application in the database.
 
@@ -140,16 +134,6 @@ Find and plot which branch processed the highest total dollar value of healthcar
 Note: Take a screenshot of the graph. 
 
 
-Capstone Project Submission guideline.
-Upload your project to your private Github repository, which needs to have a minimum of one separate branch off of the main branch.
-Virtual Environment with requirements.txt
-Have a minimum of three commits (one line brief overview, plus a more descriptive paragraph underneath, if needed).
-The project needs to have a “readme” file documenting the project details, information, and technical challenges, along with how they were resolved.
-Ensure that any sensitive information (secret.text files etc.) has been .gitignore.
-Upload all Python codes, PySpark codes, database scripts, and databases are part of the repo.
-Take a screenshot of all the graphs.
-Submit the GitHub repository link during the Canvas assignment submission. 
-All learners should present their projects individually. Your instructor will schedule the presentation slot for you.
 
 
 
